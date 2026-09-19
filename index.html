@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>FraudLens — Credit Card Fraud Detection Playground</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --accent: #1f6feb;
+    --accent-soft: #1a3a5c;
+    --tp: #2ea043;
+    --tp-soft: #0d2818;
+    --fp: #f0883e;
+    --fp-soft: #2d1a05;
+    --fn: #e3b341;
+    --fn-soft: #2d2205;
+    --tn: #1f6feb;
+    --tn-soft: #0d1f3c;
+    --danger: #da3633;
+    --safe: #2ea043;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { overflow-x: hidden; max-width: 100vw; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px) 0;
+  }
+
+  /* HEADER */
+  .header {
+    padding: 28px 32px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .logo-group h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+  .logo-group h1 span { color: var(--accent); }
+  .logo-group p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 3px;
+    font-weight: 400;
+  }
+
+  .badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 3px 8px;
+    white-space: nowrap;
+    align-self: flex-start;
+    margin-top: 6px;
+  }
+
+  /* MAIN GRID */
+  .main {
+    display: grid;
+    grid-template-columns: 340px 1fr;
+    gap: 0;
+    min-height: calc(100vh - 89px);
+    overflow: hidden;
+  }
+
+  /* LEFT PANEL */
+  .left-panel {
+    border-right: 1px solid var(--border);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    overflow-y: auto;
+  }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+
+  /* PERSONA TOGGLE */
+  .persona-toggle {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .persona-btn {
+    background: var(--surface2);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 10px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    text-align: left;
+  }
+  .persona-btn.active {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .persona-btn .pname {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    display: block;
+    margin-bottom: 3px;
+  }
+  .persona-btn .pdesc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .persona-btn.active .pname { color: #58a6ff; }
+
+  /* THRESHOLD SLIDER */
+  .slider-wrap {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+  }
+
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 14px;
+  }
+  .slider-header span:first-child {
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .threshold-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 500;
+    color: #58a6ff;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+    cursor: pointer;
+  }
+
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* PRESETS */
+  .preset-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .preset-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    padding: 10px 12px;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    text-align: left;
+  }
+  .preset-btn:hover { border-color: var(--accent); }
+  .preset-btn .ptitle { font-size: 12px; font-weight: 600; color: var(--text); display: block; }
+  .preset-btn .pthresh { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+
+  /* COST CONFIG */
+  .cost-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .cost-row label { font-size: 12px; color: var(--muted); }
+  .cost-input {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 5px 10px;
+    color: var(--text);
+    width: 110px;
+    text-align: right;
+  }
+  .cost-input:focus { outline: none; border-color: var(--accent); }
+
+  /* METRICS STRIP */
+  .metrics-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-bottom: 1px solid var(--border);
+  }
+  .metric-cell {
+    padding: 18px 20px;
+    border-right: 1px solid var(--border);
+  }
+  .metric-cell:last-child { border-right: none; }
+  .metric-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; font-weight: 500; }
+  .metric-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 26px;
+    font-weight: 600;
+  }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+  }
+
+  /* CONFUSION MATRIX */
+  .matrix-section {
+    padding: 28px 28px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .matrix-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+  .matrix-subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 22px;
+  }
+
+  .matrix-container {
+    display: grid;
+    grid-template-columns: 100px 1fr 1fr;
+    grid-template-rows: 36px 1fr 1fr;
+    gap: 8px;
+    max-width: 600px;
+  }
+
+  .axis-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .axis-label.row-label {
+    justify-content: flex-end;
+    padding-right: 12px;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .matrix-cell {
+    border-radius: 10px;
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    transition: transform 0.15s;
+    cursor: default;
+    min-height: 120px;
+  }
+
+  .cell-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  .cell-count {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .cell-desc {
+    font-size: 11px;
+    line-height: 1.4;
+    opacity: 0.8;
+  }
+
+  .cell-tp { background: var(--tp-soft); border: 1.5px solid var(--tp); }
+  .cell-tp .cell-tag { background: rgba(46,160,67,0.2); color: var(--tp); }
+  .cell-tp .cell-count { color: var(--tp); }
+
+  .cell-fp { background: var(--fp-soft); border: 1.5px solid var(--fp); }
+  .cell-fp .cell-tag { background: rgba(240,136,62,0.2); color: var(--fp); }
+  .cell-fp .cell-count { color: var(--fp); }
+
+  .cell-fn { background: var(--fn-soft); border: 1.5px solid var(--fn); }
+  .cell-fn .cell-tag { background: rgba(227,179,65,0.2); color: var(--fn); }
+  .cell-fn .cell-count { color: var(--fn); }
+
+  .cell-tn { background: var(--tn-soft); border: 1.5px solid var(--tn); }
+  .cell-tn .cell-tag { background: rgba(31,111,235,0.2); color: #58a6ff; }
+  .cell-tn .cell-count { color: #58a6ff; }
+
+  /* COST PANEL */
+  .cost-panel {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .cost-row-display {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+
+  .cost-item {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .cost-item-label { font-size: 11px; color: var(--muted); }
+  .cost-item-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .cost-item-val.loss { color: var(--danger); }
+  .cost-item-val.churn { color: var(--fp); }
+  .cost-item-val.total { color: var(--fn); font-size: 20px; }
+  .cost-item-val.saved { color: var(--tp); }
+
+  .cost-divider { width: 1px; height: 36px; background: var(--border); }
+
+  /* TRANSACTION TABLE */
+  .txn-section {
+    padding: 20px 28px 28px;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .txn-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    table-layout: fixed;
+  }
+
+  thead th {
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  tbody tr {
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+    transition: background 0.1s;
+  }
+  tbody tr:hover { background: var(--surface2); }
+
+  tbody td {
+    padding: 9px 10px;
+    font-size: 12px;
+    vertical-align: middle;
+  }
+
+  .txn-id { font-family: 'JetBrains Mono', monospace; color: var(--muted); }
+
+  .outcome-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .outcome-tp { background: rgba(46,160,67,0.15); color: var(--tp); }
+  .outcome-fp { background: rgba(240,136,62,0.15); color: var(--fp); }
+  .outcome-fn { background: rgba(227,179,65,0.15); color: var(--fn); }
+  .outcome-tn { background: rgba(31,111,235,0.15); color: #58a6ff; }
+
+  .persona-insight {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 12px;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  /* LEFT PANEL INFO TOOLTIPS */
+  .info-wrap {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .info-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 15px; height: 15px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--muted); font-size: 9px; font-weight: 700;
+    cursor: pointer; flex-shrink: 0; position: relative;
+    font-style: normal; line-height: 1;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .info-icon:hover { border-color: var(--accent); color: #58a6ff; }
+  .info-icon .info-tooltip {
+    visibility: hidden; opacity: 0;
+    background: var(--surface2); border: 1px solid var(--accent);
+    color: var(--text); font-size: 11px; line-height: 1.6;
+    border-radius: 8px; padding: 10px 12px;
+    position: absolute; left: 22px; top: -4px;
+    width: 240px; z-index: 300; pointer-events: none;
+    transition: opacity 0.15s;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    font-weight: 400; text-transform: none; letter-spacing: 0;
+  }
+  .info-icon:hover .info-tooltip,
+  .info-icon.tapped .info-tooltip { visibility: visible; opacity: 1; }
+
+  /* METRIC TOOLTIP */
+  .metric-label-wrap { position: relative; display: inline-block; cursor: help; }
+  .metric-label-wrap .tooltip {
+    visibility: hidden; opacity: 0;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-size: 11px; line-height: 1.5;
+    border-radius: 6px; padding: 8px 10px;
+    position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%);
+    width: 200px; z-index: 100; pointer-events: none;
+    transition: opacity 0.15s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  }
+  .metric-label-wrap:hover .tooltip { visibility: visible; opacity: 1; }
+  .metric-label-wrap .tooltip::after {
+    content: ''; position: absolute; top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: var(--border);
+  }
+
+  /* TRAFFIC LIGHT */
+  .traffic-dot {
+    display: inline-block; width: 8px; height: 8px;
+    border-radius: 50%; margin-right: 6px; flex-shrink: 0;
+    vertical-align: middle;
+  }
+
+  /* PLAIN LANGUAGE SUMMARY */
+  .summary-bar {
+    padding: 14px 28px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px; line-height: 1.6; color: var(--text);
+  }
+  .summary-bar strong { color: #58a6ff; }
+
+  /* TOUR OVERLAY */
+  .tour-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 200;
+    align-items: flex-end; justify-content: center;
+    padding-bottom: 40px;
+  }
+  .tour-overlay.active { display: flex; }
+  .tour-card {
+    background: var(--surface2);
+    border: 1.5px solid var(--accent);
+    border-radius: 12px;
+    padding: 24px 28px;
+    max-width: 520px; width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+  }
+  .tour-step-label {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.8px; color: var(--accent); margin-bottom: 8px;
+  }
+  .tour-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .tour-body { font-size: 13px; color: var(--muted); line-height: 1.6; margin-bottom: 20px; }
+  .tour-body strong { color: var(--text); }
+  .tour-controls { display: flex; gap: 10px; align-items: center; }
+  .tour-btn {
+    background: var(--accent); color: #fff;
+    border: none; border-radius: 6px;
+    padding: 8px 18px; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: opacity 0.15s;
+  }
+  .tour-btn:hover { opacity: 0.85; }
+  .tour-btn.secondary {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .tour-progress { font-size: 11px; color: var(--muted); margin-left: auto; }
+
+  /* TOUR BUTTON in header */
+  .tour-trigger {
+    background: transparent;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 6px; padding: 6px 14px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s;
+    align-self: flex-start; margin-top: 4px;
+  }
+  .tour-trigger:hover { background: var(--accent-soft); }
+
+  /* GLOSSARY */
+  .glossary-section {
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .glossary-toggle {
+    width: 100%; background: none; border: none;
+    padding: 16px 28px; cursor: pointer;
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--text); font-size: 13px; font-weight: 600;
+    text-align: left;
+  }
+  .glossary-toggle:hover { background: var(--surface2); }
+  .glossary-toggle .g-arrow { font-size: 14px; transition: transform 0.2s; }
+  .glossary-toggle.open .g-arrow { transform: rotate(180deg); }
+  .glossary-body {
+    display: none;
+    padding: 0 28px 24px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .glossary-body.open { display: grid; }
+  .glossary-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 7px; padding: 12px 14px;
+  }
+  .glossary-term {
+    font-size: 12px; font-weight: 700;
+    color: #58a6ff; margin-bottom: 4px;
+  }
+  .glossary-def { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+  @media (max-width: 600px) {
+    .glossary-body { grid-template-columns: 1fr; }
+    .glossary-toggle { padding: 14px 16px; }
+    .glossary-body { padding: 0 16px 16px; }
+    .summary-bar { padding: 12px 16px; }
+  }
+  .calc-section {
+    padding: 20px 28px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .calc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .calc-block {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .calc-block-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .calc-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 6px;
+    gap: 8px;
+  }
+  .calc-formula {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    flex: 1;
+    word-break: break-all;
+    overflow-wrap: break-word;
+  }
+  .calc-formula em {
+    font-style: normal;
+    color: var(--text);
+  }
+  .calc-result {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .calc-sep {
+    border: none;
+    border-top: 1px dashed var(--border);
+    margin: 8px 0;
+  }
+  .calc-total-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+  .calc-total-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .calc-total-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  @media (max-width: 600px) {
+    .calc-grid { grid-template-columns: 1fr; }
+    .calc-section { padding: 16px; }
+  }
+
+  /* COST CURVE CHART */
+  .curve-section {
+    padding: 20px 28px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .curve-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+  .curve-title { font-size: 13px; font-weight: 600; }
+  .curve-subtitle { font-size: 11px; color: var(--muted); margin-bottom: 14px; white-space: normal; word-break: break-word; }
+
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+    height: 160px;
+  }
+  canvas#costCurve {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .optimal-label {
+    position: absolute;
+    background: var(--surface2);
+    border: 1px solid var(--fn);
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--fn);
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .left-panel { border-right: none; border-bottom: 1px solid var(--border); }
+    .metrics-strip { grid-template-columns: repeat(2,1fr); }
+    .metric-cell:nth-child(2) { border-right: none; }
+    .metric-cell:nth-child(3) { border-right: 1px solid var(--border); }
+  }
+
+  @media (max-width: 600px) {
+    .header { padding: 16px; }
+    .logo-group h1 { font-size: 18px; }
+    .left-panel { padding: 16px; }
+
+    /* Matrix: drop axis labels, go 2×2 */
+    .matrix-container {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: auto auto;
+      gap: 10px;
+    }
+    .axis-label { display: none; }
+    .matrix-cell {
+      min-height: 90px;
+      padding: 12px;
+    }
+    .cell-count { font-size: 24px; }
+
+    /* Metrics: 2-col */
+    .metrics-strip { grid-template-columns: 1fr 1fr; }
+    .metric-cell { padding: 12px 14px; }
+    .metric-val { font-size: 20px; }
+
+    /* Cost display: stack vertically */
+    .cost-row-display { flex-direction: column; gap: 12px; }
+    .cost-divider { display: none; }
+    .cost-panel { padding: 16px; }
+
+    /* Matrix section */
+    .matrix-section { padding: 16px; }
+
+    .txn-section { padding: 16px; }
+    .preset-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-group">
+    <h1>Fraud<span>Lens</span></h1>
+    <p>Credit Card Fraud Detection · Confusion Matrix Playground</p>
+  </div>
+  <div class="badge">Financial Services · AI Risk Model</div>
+  <button class="tour-trigger" onclick="startTour()">🎯 Take the Tour</button>
+</div>
+
+<div class="main">
+  <!-- LEFT PANEL -->
+  <div class="left-panel">
+
+    <!-- Persona -->
+    <div>
+      <div class="section-label">Stakeholder Persona</div>
+      <div class="persona-toggle">
+        <button class="persona-btn active" onclick="setPersona('risk')" id="persona-risk">
+          <span class="pname">Risk Officer</span>
+          <span class="pdesc">Minimize fraud losses. Accept customer friction.</span>
+        </button>
+        <button class="persona-btn" onclick="setPersona('cx')" id="persona-cx">
+          <span class="pname">CX Head</span>
+          <span class="pdesc">Minimize false blocks. Protect customer trust.</span>
+        </button>
+      </div>
+      <div class="persona-insight" id="persona-insight" style="margin-top:10px;">
+        <strong>Risk Officer lens:</strong> You care most about catching every fraud case. False negatives (missed fraud) cost real money. You'll tolerate some genuine transactions being flagged.
+      </div>
+    </div>
+
+    <!-- Threshold Slider -->
+    <div>
+      <div class="section-label">Detection Threshold</div>
+      <div class="slider-wrap">
+        <div class="slider-header">
+          <span>Flag as fraud when score ≥</span>
+          <span class="threshold-val" id="thresh-display">0.50</span>
+        </div>
+        <input type="range" id="threshold" min="0.01" max="0.99" step="0.01" value="0.50" oninput="update()">
+        <div class="slider-labels">
+          <span>0.00 — Catch all</span>
+          <span>1.00 — Catch none</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Presets -->
+    <div>
+      <div class="section-label">Card / Channel Presets</div>
+      <div class="preset-grid">
+        <button class="preset-btn" onclick="setThreshold(0.25)">
+          <span class="ptitle">High-Value Card</span>
+          <span class="pthresh">θ = 0.25</span>
+        </button>
+        <button class="preset-btn" onclick="setThreshold(0.50)">
+          <span class="ptitle">Standard Card</span>
+          <span class="pthresh">θ = 0.50</span>
+        </button>
+        <button class="preset-btn" onclick="setThreshold(0.70)">
+          <span class="ptitle">UPI / Micro-txn</span>
+          <span class="pthresh">θ = 0.70</span>
+        </button>
+        <button class="preset-btn" onclick="setThreshold(0.88)">
+          <span class="ptitle">Debit Low-Risk</span>
+          <span class="pthresh">θ = 0.88</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Cost Config -->
+    <div>
+      <div class="section-label">Cost Configuration (₹)</div>
+      <div class="cost-row">
+        <label>Cost per missed fraud (FN)</label>
+        <input class="cost-input" id="cost-fn" type="number" min="0" placeholder="18000" value="18000" oninput="update()">
+      </div>
+      <div class="cost-row">
+        <label>Cost per false block (FP)</label>
+        <input class="cost-input" id="cost-fp" type="number" min="0" placeholder="850" value="850" oninput="update()">
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+
+    <!-- Metrics Strip -->
+    <div class="metrics-strip">
+      <div class="metric-cell">
+        <div class="metric-label">
+          <span class="metric-label-wrap">Precision
+            <span class="tooltip">Of all transactions the model flagged as fraud, what % were actually fraud? High precision = fewer innocent customers blocked.</span>
+          </span>
+        </div>
+        <div class="metric-val" id="m-precision" style="color: var(--tp)">—</div>
+        <div class="metric-sub">Of flagged txns, % truly fraud</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">
+          <span class="metric-label-wrap">Recall
+            <span class="tooltip">Of all actual fraud cases in the dataset, what % did the model catch? High recall = fewer frauds slipping through.</span>
+          </span>
+        </div>
+        <div class="metric-val" id="m-recall" style="color: var(--fn)">—</div>
+        <div class="metric-sub">Of all fraud, % caught</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">
+          <span class="metric-label-wrap">F1 Score
+            <span class="tooltip">A single number balancing both Precision and Recall. Closer to 100% = the model is good at catching fraud without over-blocking genuine customers.</span>
+          </span>
+        </div>
+        <div class="metric-val" id="m-f1" style="color: #58a6ff">—</div>
+        <div class="metric-sub">Harmonic mean</div>
+      </div>
+      <div class="metric-cell">
+        <div class="metric-label">
+          <span class="metric-label-wrap">Accuracy
+            <span class="tooltip">Out of all 25 transactions, what % did the model decide correctly? Warning: accuracy can look high even if the model misses most fraud.</span>
+          </span>
+        </div>
+        <div class="metric-val" id="m-acc" style="color: var(--muted)">—</div>
+        <div class="metric-sub">Overall correct decisions</div>
+      </div>
+    </div>
+
+    <!-- Confusion Matrix -->
+    <div class="matrix-section">
+      <div class="matrix-title">Confusion Matrix — Live View</div>
+      <div class="matrix-subtitle">Rows = Model Decision &nbsp;·&nbsp; Columns = Ground Truth &nbsp;·&nbsp; Adjust threshold to watch cells shift</div>
+
+      <div class="matrix-container">
+        <!-- row 0: empty, col headers -->
+        <div></div>
+        <div class="axis-label">Actual Fraud</div>
+        <div class="axis-label">Actual Genuine</div>
+
+        <!-- row 1: Flagged as Fraud -->
+        <div class="axis-label row-label">Model Flags Fraud</div>
+        <div class="matrix-cell cell-tp">
+          <span class="cell-tag">TP</span>
+          <span class="cell-count"><span class="traffic-dot" id="dot-tp"></span><span id="cell-tp">0</span></span>
+          <span class="cell-desc">Fraud correctly caught<br>— money saved</span>
+        </div>
+        <div class="matrix-cell cell-fp">
+          <span class="cell-tag">FP</span>
+          <span class="cell-count"><span class="traffic-dot" id="dot-fp"></span><span id="cell-fp">0</span></span>
+          <span class="cell-desc">Genuine txn blocked<br>— customer annoyed</span>
+        </div>
+
+        <!-- row 2: Passed as Genuine -->
+        <div class="axis-label row-label">Model Passes</div>
+        <div class="matrix-cell cell-fn">
+          <span class="cell-tag">FN</span>
+          <span class="cell-count"><span class="traffic-dot" id="dot-fn"></span><span id="cell-fn">0</span></span>
+          <span class="cell-desc">Fraud slipped through<br>— money lost</span>
+        </div>
+        <div class="matrix-cell cell-tn">
+          <span class="cell-tag">TN</span>
+          <span class="cell-count"><span class="traffic-dot" id="dot-tn"></span><span id="cell-tn">0</span></span>
+          <span class="cell-desc">Genuine txn passed<br>— correct, no cost</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cost Display -->
+    <div class="cost-panel">
+      <div class="cost-row-display">
+        <div class="cost-item">
+          <span class="cost-item-label">Fraud Loss (FN × cost)</span>
+          <span class="cost-item-val loss" id="cost-loss">₹0</span>
+        </div>
+        <div class="cost-divider"></div>
+        <div class="cost-item">
+          <span class="cost-item-label">Customer Friction (FP × cost)</span>
+          <span class="cost-item-val churn" id="cost-churn">₹0</span>
+        </div>
+        <div class="cost-divider"></div>
+        <div class="cost-item">
+          <span class="cost-item-label">Total Operational Cost</span>
+          <span class="cost-item-val total" id="cost-total">₹0</span>
+        </div>
+        <div class="cost-divider"></div>
+        <div class="cost-item">
+          <span class="cost-item-label">Fraud Saved (TP × avg fraud amt)</span>
+          <span class="cost-item-val saved" id="cost-saved">₹0</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Calculation Breakdown -->
+    <div class="calc-section">
+      <div class="curve-header">
+        <span class="curve-title">📐 Live Calculation Breakdown</span>
+        <span style="font-size:11px;color:var(--muted);">Updates with every change</span>
+      </div>
+      <div class="calc-grid">
+
+        <!-- Cost Calculations -->
+        <div class="calc-block">
+          <div class="calc-block-title" style="color:var(--fn);">💰 Cost Calculations</div>
+
+          <div class="calc-line">
+            <span class="calc-formula">Fraud Loss = FN × Cost/FN</span>
+          </div>
+          <div class="calc-line">
+            <span class="calc-formula">= <em id="cb-fn">0</em> × <em id="cb-costfn">₹0</em></span>
+            <span class="calc-result" style="color:var(--danger);" id="cb-loss">₹0</span>
+          </div>
+
+          <hr class="calc-sep">
+
+          <div class="calc-line">
+            <span class="calc-formula">Friction = FP × Cost/FP</span>
+          </div>
+          <div class="calc-line">
+            <span class="calc-formula">= <em id="cb-fp">0</em> × <em id="cb-costfp">₹0</em></span>
+            <span class="calc-result" style="color:var(--fp);" id="cb-churn">₹0</span>
+          </div>
+
+          <hr class="calc-sep">
+
+          <div class="calc-total-line">
+            <span class="calc-total-label">Total Cost = Loss + Friction</span>
+            <span class="calc-total-val" style="color:var(--fn);" id="cb-total">₹0</span>
+          </div>
+          <div class="calc-line" style="margin-top:4px;">
+            <span class="calc-formula">= <em id="cb-loss2">₹0</em> + <em id="cb-churn2">₹0</em></span>
+          </div>
+        </div>
+
+        <!-- Metric Calculations -->
+        <div class="calc-block">
+          <div class="calc-block-title" style="color:#58a6ff;">📊 Metric Calculations</div>
+
+          <div class="calc-line">
+            <span class="calc-formula">Precision = TP ÷ (TP + FP)</span>
+          </div>
+          <div class="calc-line">
+            <span class="calc-formula">= <em id="cb-tp-p">0</em> ÷ (<em id="cb-tp-p2">0</em> + <em id="cb-fp-p">0</em>)</span>
+            <span class="calc-result" style="color:var(--tp);" id="cb-precision">—</span>
+          </div>
+
+          <hr class="calc-sep">
+
+          <div class="calc-line">
+            <span class="calc-formula">Recall = TP ÷ (TP + FN)</span>
+          </div>
+          <div class="calc-line">
+            <span class="calc-formula">= <em id="cb-tp-r">0</em> ÷ (<em id="cb-tp-r2">0</em> + <em id="cb-fn-r">0</em>)</span>
+            <span class="calc-result" style="color:var(--fn);" id="cb-recall">—</span>
+          </div>
+
+          <hr class="calc-sep">
+
+          <div class="calc-line">
+            <span class="calc-formula">F1 = 2 × P × R ÷ (P + R)</span>
+          </div>
+          <div class="calc-line">
+            <span class="calc-formula">= 2 × <em id="cb-p-f1">—</em> × <em id="cb-r-f1">—</em> ÷ (<em id="cb-pr-f1">—</em>)</span>
+            <span class="calc-result" style="color:#58a6ff;" id="cb-f1">—</span>
+          </div>
+
+          <hr class="calc-sep">
+
+          <div class="calc-total-line">
+            <span class="calc-total-label">Accuracy = (TP+TN) ÷ Total</span>
+            <span class="calc-total-val" style="color:var(--muted);" id="cb-acc">—</span>
+          </div>
+          <div class="calc-line" style="margin-top:4px;">
+            <span class="calc-formula">= (<em id="cb-tp-a">0</em>+<em id="cb-tn-a">0</em>) ÷ <em id="cb-tot-a">25</em></span>
+          </div>
+        </div>
+
+        <!-- Fraud Saved Calculation -->
+        <div class="calc-block" style="grid-column: 1 / -1; min-width:0; overflow:hidden;">
+          <div class="calc-block-title" style="color:var(--tp);">✅ Fraud Saved Calculation</div>
+          <div class="calc-line">
+            <span class="calc-formula">Fraud Saved = Sum of actual amounts of all caught fraud transactions (TP)</span>
+          </div>
+          <div class="calc-line" style="margin-top:4px; flex-wrap:wrap; gap:4px;">
+            <span class="calc-formula" id="cb-saved-breakdown" style="line-height:1.8; white-space:normal; word-break:break-word; flex:1; min-width:0;">—</span>
+            <span class="calc-result" style="color:var(--tp);font-size:14px;flex-shrink:0;" id="cb-saved-total">₹0</span>
+          </div>
+          <div class="calc-line" style="margin-top:6px;">
+            <span class="calc-formula">Avg fraud amount = Total Saved ÷ TP caught = <em id="cb-saved-avg">—</em></span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+    <div class="curve-section">
+      <div class="curve-header">
+        <span class="curve-title">Cost Curve — Total Cost vs Threshold</span>
+        <span id="optimal-badge" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--fn);"></span>
+      </div>
+      <div class="curve-subtitle">Blue line = Fraud Loss · Orange line = Customer Friction · Yellow line = Total Cost · ▲ = your current threshold</div>
+      <div class="chart-wrap">
+        <canvas id="costCurve"></canvas>
+      </div>
+    </div>
+
+    <!-- Plain Language Summary -->
+    <div class="summary-bar" id="summary-bar">—</div>
+
+    <!-- Tour Overlay -->
+    <div class="tour-overlay" id="tour-overlay">
+      <div class="tour-card">
+        <div class="tour-step-label" id="tour-step-label">Step 1 of 4</div>
+        <div class="tour-title" id="tour-title">—</div>
+        <div class="tour-body" id="tour-body">—</div>
+        <div class="tour-controls">
+          <button class="tour-btn secondary" onclick="exitTour()">✕ Exit</button>
+          <button class="tour-btn secondary" id="tour-prev" onclick="tourNav(-1)">← Prev</button>
+          <button class="tour-btn" id="tour-next" onclick="tourNav(1)">Next →</button>
+          <span class="tour-progress" id="tour-progress"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transaction Table -->
+    <div class="txn-section">
+      <div class="txn-header">
+        <span style="font-size:13px;font-weight:600;">Live Transaction Pool</span>
+        <span style="font-size:11px;color:var(--muted);" id="txn-count">0 transactions</span>
+      </div>
+      <div>
+        <table>
+          <thead>
+            <tr>
+              <th>TXN ID</th>
+              <th>Amount (₹)</th>
+              <th>True Label</th>
+              <th>Fraud Score</th>
+              <th>Model Decision</th>
+              <th>Outcome</th>
+            </tr>
+          </thead>
+          <tbody id="txn-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- GLOSSARY -->
+<div class="glossary-section">
+  <button class="glossary-toggle" id="glossary-toggle" onclick="toggleGlossary()">
+    <span>📖 Glossary — Quick Reference</span>
+    <span class="g-arrow">▼</span>
+  </button>
+  <div class="glossary-body" id="glossary-body">
+    <div class="glossary-item">
+      <div class="glossary-term">Threshold (θ)</div>
+      <div class="glossary-def">The sensitivity dial. If a transaction's fraud score is above this number, the model flags it. Lower = stricter, catches more fraud but also blocks more genuine customers.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">True Positive (TP) ✅</div>
+      <div class="glossary-def">The model flagged a transaction as fraud — and it actually was fraud. This is the ideal outcome. Money saved.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">False Positive (FP) ⚠️</div>
+      <div class="glossary-def">The model flagged a genuine customer's transaction as fraud by mistake. The customer gets blocked and is frustrated. No money lost, but trust is damaged.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">False Negative (FN) 🚨</div>
+      <div class="glossary-def">The model missed a fraud transaction and let it through. The bank loses money. This is the most costly error in financial services.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">True Negative (TN) ✅</div>
+      <div class="glossary-def">The model correctly let a genuine transaction through. No error, no cost. This is also a good outcome.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">Precision</div>
+      <div class="glossary-def">Out of every transaction the model flagged as fraud, how many were actually fraud? High precision = fewer innocent customers blocked.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">Recall</div>
+      <div class="glossary-def">Out of all real fraud cases, how many did the model catch? High recall = fewer frauds slipping through. Also called Sensitivity.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">F1 Score</div>
+      <div class="glossary-def">A single number that balances Precision and Recall. 100% is perfect. Useful when both false alarms and missed fraud are costly.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">Accuracy</div>
+      <div class="glossary-def">The percentage of all decisions (fraud + genuine) that were correct. Can be misleading — a model that passes every transaction would be 60% accurate but catch zero fraud.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">Confusion Matrix</div>
+      <div class="glossary-def">A 2×2 table showing all four outcomes (TP, FP, FN, TN) at once. It tells you not just how many the model got right, but what kind of mistakes it made.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">Stakeholder Persona</div>
+      <div class="glossary-def">Two people, same data, different priorities. A <strong style="color:#58a6ff">Risk Officer</strong> wants to catch every fraud even if it means blocking some genuine customers. A <strong style="color:#58a6ff">CX Head</strong> wants to protect customer experience even if a little fraud slips through. Toggle between them to see how the same model looks through different eyes. Risk Officer uses θ=0.35, strict, flags aggressively to minimise missed fraud. CX Head uses θ=0.65, lenient, prioritises customer flow. These are illustrative values; in production, set by the bank's risk team.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">Card / Channel Presets</div>
+      <div class="glossary-def">Banks don't use one threshold for everything. A ₹90,000 jewellery card transaction gets scrutinised differently than a ₹50 UPI payment. These presets simulate real-world threshold strategies. <strong style="color:#58a6ff">High-Value cards</strong> use a low threshold (flag aggressively), <strong style="color:#58a6ff">Micro-txn/UPI</strong> uses a high threshold (flag rarely to avoid friction). High-Value Card θ=0.25, Standard Card θ=0.50, UPI/Micro-txn θ=0.70, Debit Low-Risk θ=0.88. Illustrative values; in production, calibrated from historical fraud rates and regulatory guidelines.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">Cost Configuration</div>
+      <div class="glossary-def"><strong style="color:#58a6ff">Cost per missed fraud (FN)</strong> = what the bank loses when fraud slips through — investigation fees, chargeback processing, write-off. <strong style="color:#58a6ff">Cost per false block (FP)</strong> = what it costs to wrongly stop a genuine customer — call centre handling, goodwill credits, churn risk. Change these values and watch the cost curve shift.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">Fraud Score</div>
+      <div class="glossary-def">A number between 0 and 1 the AI model assigns to every transaction. Closer to 1 = the model thinks it's very likely fraud. Closer to 0 = looks genuine. The threshold decides where to draw the line.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">Model Decision</div>
+      <div class="glossary-def">What the model actually does with the transaction — either 🚨 FRAUD (blocks it for review) or ✓ PASS (approves it). Based purely on whether the fraud score is above or below your threshold.</div>
+    </div>
+    <div class="glossary-item">
+      <div class="glossary-term">Outcome</div>
+      <div class="glossary-def">The result after comparing the model's decision against the ground truth. ✓ Fraud caught (TP), ✓ Genuine passed (TN), ✗ Fraud missed (FN), ✗ Genuine blocked (FP).</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATASET ──────────────────────────────────────────────────────────────────
+const transactions = [
+  { id:'TXN-0001', amount:48200, category:'Electronics',   fraud:true,  score:0.91 },
+  { id:'TXN-0002', amount:1250,  category:'Grocery',       fraud:false, score:0.08 },
+  { id:'TXN-0003', amount:3800,  category:'Fuel',          fraud:false, score:0.31 },
+  { id:'TXN-0004', amount:22000, category:'Jewellery',     fraud:true,  score:0.87 },
+  { id:'TXN-0005', amount:560,   category:'Food & Dining', fraud:false, score:0.05 },
+  { id:'TXN-0006', amount:15000, category:'Travel',        fraud:false, score:0.44 },
+  { id:'TXN-0007', amount:7800,  category:'Electronics',   fraud:true,  score:0.73 },
+  { id:'TXN-0008', amount:12500, category:'Transfer',      fraud:true,  score:0.68 },
+  { id:'TXN-0009', amount:320,   category:'Pharmacy',      fraud:false, score:0.09 },
+  { id:'TXN-0010', amount:89000, category:'Jewellery',     fraud:true,  score:0.96 },
+  { id:'TXN-0011', amount:4200,  category:'Apparel',       fraud:false, score:0.18 },
+  { id:'TXN-0012', amount:1800,  category:'Grocery',       fraud:false, score:0.12 },
+  { id:'TXN-0013', amount:34000, category:'Electronics',   fraud:true,  score:0.82 },
+  { id:'TXN-0014', amount:9500,  category:'Travel',        fraud:false, score:0.53 },
+  { id:'TXN-0015', amount:2600,  category:'Food & Dining', fraud:false, score:0.21 },
+  { id:'TXN-0016', amount:18500, category:'Transfer',      fraud:true,  score:0.78 },
+  { id:'TXN-0017', amount:6200,  category:'Apparel',       fraud:false, score:0.36 },
+  { id:'TXN-0018', amount:41000, category:'Electronics',   fraud:true,  score:0.89 },
+  { id:'TXN-0019', amount:880,   category:'Pharmacy',      fraud:false, score:0.06 },
+  { id:'TXN-0020', amount:5300,  category:'Fuel',          fraud:false, score:0.29 },
+  { id:'TXN-0021', amount:11200, category:'Grocery',       fraud:false, score:0.41 },
+  { id:'TXN-0022', amount:27500, category:'Jewellery',     fraud:true,  score:0.93 },
+  { id:'TXN-0023', amount:3100,  category:'Food & Dining', fraud:false, score:0.14 },
+  { id:'TXN-0024', amount:19800, category:'Transfer',      fraud:true,  score:0.61 },
+  { id:'TXN-0025', amount:7400,  category:'Apparel',       fraud:false, score:0.48 },
+];
+
+let currentPersona = 'risk';
+
+// ─── FORMAT ───────────────────────────────────────────────────────────────────
+function fmt(n) {
+  if (n >= 1e7) return '₹' + (n/1e7).toFixed(1) + 'Cr';
+  if (n >= 1e5) return '₹' + (n/1e5).toFixed(1) + 'L';
+  if (n >= 1e3) return '₹' + (n/1e3).toFixed(1) + 'K';
+  return '₹' + n.toFixed(0);
+}
+
+function pct(v) { return isNaN(v)||!isFinite(v) ? '—' : (v*100).toFixed(1)+'%'; }
+
+// ─── PERSONA ──────────────────────────────────────────────────────────────────
+const personaInsights = {
+  risk: `<strong>Risk Officer lens:</strong> You care most about catching every fraud case. False negatives (missed fraud) cost real money. You'll tolerate some genuine transactions being flagged.`,
+  cx: `<strong>CX Head lens:</strong> You care most about not blocking genuine customers. False positives erode trust and increase churn. You accept slightly more fraud slipping through.`
+};
+
+function setPersona(p) {
+  currentPersona = p;
+  document.querySelectorAll('.persona-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('persona-' + p).classList.add('active');
+  document.getElementById('persona-insight').innerHTML = personaInsights[p];
+
+  // Auto-adjust threshold suggestion
+  if (p === 'risk') { setThreshold(0.35); }
+  else { setThreshold(0.65); }
+}
+
+function setThreshold(v) {
+  document.getElementById('threshold').value = v;
+  update();
+}
+
+// ─── MAIN UPDATE ──────────────────────────────────────────────────────────────
+function update() {
+  const theta = parseFloat(document.getElementById('threshold').value);
+  const costFN = Math.max(0, parseFloat(document.getElementById('cost-fn').value) || 0);
+  const costFP = Math.max(0, parseFloat(document.getElementById('cost-fp').value) || 0);
+
+  document.getElementById('thresh-display').textContent = theta.toFixed(2);
+
+  let TP=0, FP=0, FN=0, TN=0;
+  let fraudSaved = 0;
+  let tpAmounts = [];
+
+  const rows = transactions.map(t => {
+    const flagged = t.score >= theta;
+    let outcome;
+    if (flagged && t.fraud)  { TP++; outcome='TP'; fraudSaved += t.amount; tpAmounts.push(t.amount); }
+    if (flagged && !t.fraud) { FP++; outcome='FP'; }
+    if (!flagged && t.fraud) { FN++; outcome='FN'; }
+    if (!flagged && !t.fraud){ TN++; outcome='TN'; }
+    return { ...t, flagged, outcome };
+  });
+
+  // Matrix
+  document.getElementById('cell-tp').textContent = TP;
+  document.getElementById('cell-fp').textContent = FP;
+  document.getElementById('cell-fn').textContent = FN;
+  document.getElementById('cell-tn').textContent = TN;
+
+  // Metrics
+  const precision = TP/(TP+FP);
+  const recall = TP/(TP+FN);
+  const f1 = 2*precision*recall/(precision+recall);
+  const acc = (TP+TN)/(TP+FP+FN+TN);
+
+  document.getElementById('m-precision').textContent = pct(precision);
+  document.getElementById('m-recall').textContent = pct(recall);
+  document.getElementById('m-f1').textContent = pct(f1);
+  document.getElementById('m-acc').textContent = pct(acc);
+
+  // Costs
+  const loss = FN * costFN;
+  const churn = FP * costFP;
+  const total = loss + churn;
+
+  document.getElementById('cost-loss').textContent = fmt(loss);
+  document.getElementById('cost-churn').textContent = fmt(churn);
+  document.getElementById('cost-total').textContent = fmt(total);
+  document.getElementById('cost-saved').textContent = fmt(fraudSaved);
+
+  // ── Calculation Breakdown ──────────────────────────────────────────────────
+  const precNum = isFinite(precision) ? (precision*100).toFixed(1)+'%' : '—';
+  const recNum  = isFinite(recall)    ? (recall*100).toFixed(1)+'%'    : '—';
+  const f1Num   = isFinite(f1)        ? (f1*100).toFixed(1)+'%'        : '—';
+
+  // Cost block
+  document.getElementById('cb-fn').textContent      = FN;
+  document.getElementById('cb-costfn').textContent  = '₹' + costFN.toLocaleString('en-IN');
+  document.getElementById('cb-loss').textContent     = fmt(FN * costFN);
+  document.getElementById('cb-fp').textContent      = FP;
+  document.getElementById('cb-costfp').textContent  = '₹' + costFP.toLocaleString('en-IN');
+  document.getElementById('cb-churn').textContent   = fmt(FP * costFP);
+  document.getElementById('cb-total').textContent   = fmt(FN * costFN + FP * costFP);
+  document.getElementById('cb-loss2').textContent   = fmt(FN * costFN);
+  document.getElementById('cb-churn2').textContent  = fmt(FP * costFP);
+
+  // Metric block
+  document.getElementById('cb-tp-p').textContent   = TP;
+  document.getElementById('cb-tp-p2').textContent  = TP;
+  document.getElementById('cb-fp-p').textContent   = FP;
+  document.getElementById('cb-precision').textContent = precNum;
+
+  document.getElementById('cb-tp-r').textContent   = TP;
+  document.getElementById('cb-tp-r2').textContent  = TP;
+  document.getElementById('cb-fn-r').textContent   = FN;
+  document.getElementById('cb-recall').textContent = recNum;
+
+  document.getElementById('cb-p-f1').textContent   = isFinite(precision) ? precision.toFixed(2) : '—';
+  document.getElementById('cb-r-f1').textContent   = isFinite(recall)    ? recall.toFixed(2)    : '—';
+  document.getElementById('cb-pr-f1').textContent  = isFinite(precision+recall) ? (precision+recall).toFixed(2) : '—';
+  document.getElementById('cb-f1').textContent     = f1Num;
+
+  document.getElementById('cb-tp-a').textContent   = TP;
+  document.getElementById('cb-tn-a').textContent   = TN;
+  document.getElementById('cb-tot-a').textContent  = transactions.length;
+  document.getElementById('cb-acc').textContent    = pct(acc);
+
+  // Fraud Saved breakdown
+  const savedBreakdown = tpAmounts.length
+    ? tpAmounts.map(a => fmt(a)).join(' + ') + ' = '
+    : 'No fraud caught at this threshold — ';
+  document.getElementById('cb-saved-breakdown').innerHTML = savedBreakdown;
+  document.getElementById('cb-saved-total').textContent = fmt(fraudSaved);
+  const avgFraud = tpAmounts.length ? fraudSaved / tpAmounts.length : 0;
+  document.getElementById('cb-saved-avg').textContent = tpAmounts.length
+    ? `${fmt(fraudSaved)} ÷ ${tpAmounts.length} = ${fmt(avgFraud)}`
+    : '—';
+
+  // Transaction table
+  const labels = { TP:'TP', FP:'FP', FN:'FN', TN:'TN' };
+  const tbody = document.getElementById('txn-tbody');
+  tbody.innerHTML = rows.map(t => {
+    const outcomeClass = 'outcome-' + t.outcome.toLowerCase();
+    const outcomeLabels = {
+      TP: '✓ Fraud caught',
+      FP: '✗ Genuine blocked',
+      FN: '✗ Fraud missed',
+      TN: '✓ Genuine passed'
+    };
+    const scoreBar = `<span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:${t.score>=theta?'var(--danger)':'var(--safe)'};">${t.score.toFixed(2)}</span>`;
+    const decision = t.flagged
+      ? `<span style="font-size:11px;color:var(--danger);font-weight:600;">🚨 FRAUD</span>`
+      : `<span style="font-size:11px;color:var(--safe);font-weight:600;">✓ PASS</span>`;
+    return `<tr>
+      <td class="txn-id">${t.id}</td>
+      <td style="font-family:'JetBrains Mono',monospace;">${fmt(t.amount)}</td>
+      <td><span style="font-size:11px;font-weight:600;color:${t.fraud?'var(--danger)':'var(--safe)'};">${t.fraud?'Fraud':'Genuine'}</span></td>
+      <td>${scoreBar}</td>
+      <td>${decision}</td>
+      <td><span class="outcome-badge ${outcomeClass}">${outcomeLabels[t.outcome]}</span></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('txn-count').textContent = `${transactions.length} transactions`;
+
+  // ── Traffic Lights ─────────────────────────────────────────────────────────
+  const totalFraud = transactions.filter(t => t.fraud).length;   // 10
+  const totalGenuine = transactions.filter(t => !t.fraud).length; // 15
+
+  function trafficColor(val, goodHigh) {
+    // goodHigh=true: more = greener (TP, TN); goodHigh=false: more = redder (FP, FN)
+    const ratio = goodHigh
+      ? val / (goodHigh === 'tp' ? totalFraud : totalGenuine)
+      : val / (goodHigh === false && val > 0 ? Math.max(val, 1) : 1);
+    if (goodHigh) return val === 0 ? '#da3633' : val >= (goodHigh==='tp'?totalFraud*0.7:totalGenuine*0.7) ? '#2ea043' : '#e3b341';
+    return val === 0 ? '#2ea043' : val <= 2 ? '#e3b341' : '#da3633';
+  }
+
+  document.getElementById('dot-tp').style.background = trafficColor(TP, 'tp');
+  document.getElementById('dot-fp').style.background = trafficColor(FP, false);
+  document.getElementById('dot-fn').style.background = trafficColor(FN, false);
+  document.getElementById('dot-tn').style.background = trafficColor(TN, 'tn');
+
+  // ── Plain Language Summary ─────────────────────────────────────────────────
+  const missedTxt  = FN === 0
+    ? 'caught <strong>all fraud transactions</strong> — nothing slipped through'
+    : `let through <strong>${FN} fraud transaction${FN>1?'s':''}</strong> (<strong>${fmt(FN*costFN)}</strong> unrecovered)`;
+  const blockedTxt = FP === 0
+    ? 'approved every genuine customer correctly'
+    : `flagged <strong>${FP} genuine customer${FP>1?'s':''}</strong> by mistake (<strong>${fmt(FP*costFP)}</strong> in service cost)`;
+  const totalTxt = total === 0
+    ? 'Total operational cost: <strong style="color:var(--tp)">₹0 — optimal balance at this threshold.</strong>'
+    : `Total operational cost: <strong style="color:var(--fn)">${fmt(total)}</strong>`;
+  document.getElementById('summary-bar').innerHTML =
+    `💡 <strong>Here's what's happening:</strong> At this threshold, the model ${missedTxt} and ${blockedTxt}. ${totalTxt}`;
+
+  // Draw cost curve
+  drawCostCurve(theta, costFN, costFP);
+}
+
+// ─── COST CURVE ───────────────────────────────────────────────────────────────
+function computeCosts(theta, costFN, costFP) {
+  let FN = 0, FP = 0;
+  transactions.forEach(t => {
+    const flagged = t.score >= theta;
+    if (!flagged && t.fraud)  FN++;
+    if (flagged && !t.fraud)  FP++;
+  });
+  return { loss: FN * costFN, churn: FP * costFP, total: FN * costFN + FP * costFP };
+}
+
+function drawCostCurve(currentTheta, costFN, costFP) {
+  const canvas = document.getElementById('costCurve');
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width  = rect.width  + 'px';
+  canvas.style.height = rect.height + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const W = rect.width, H = rect.height;
+  const PAD = { top: 10, right: 16, bottom: 30, left: 52 };
+  const chartW = W - PAD.left - PAD.right;
+  const chartH = H - PAD.top  - PAD.bottom;
+
+  // Generate data across thresholds
+  const steps = 99;
+  const thresholds = Array.from({length: steps}, (_, i) => (i + 1) / 100);
+  const data = thresholds.map(t => ({ t, ...computeCosts(t, costFN, costFP) }));
+
+  const maxCost = Math.max(...data.map(d => d.total), 1);
+  const optPoint = data.reduce((a, b) => b.total < a.total ? b : a);
+
+  // Update optimal badge
+  document.getElementById('optimal-badge').textContent =
+    `Optimal θ = ${optPoint.t.toFixed(2)} · Min Cost = ${fmt(optPoint.total)}`;
+
+  const xOf = t => PAD.left + ((t - 0.01) / 0.98) * chartW;
+  const yOf = v => PAD.top + chartH - (v / maxCost) * chartH;
+
+  // Background
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid lines
+  ctx.strokeStyle = '#30363d';
+  ctx.lineWidth = 0.5;
+  for (let i = 0; i <= 4; i++) {
+    const y = PAD.top + (i / 4) * chartH;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(W - PAD.right, y); ctx.stroke();
+    // Y axis labels
+    const val = maxCost * (1 - i / 4);
+    ctx.fillStyle = '#7d8590';
+    ctx.font = '10px Inter, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(fmt(val), PAD.left - 6, y + 4);
+  }
+
+  // X axis labels
+  ctx.textAlign = 'center';
+  [0.2, 0.4, 0.6, 0.8].forEach(t => {
+    const x = xOf(t);
+    ctx.fillStyle = '#7d8590';
+    ctx.font = '10px JetBrains Mono, monospace';
+    ctx.fillText(t.toFixed(1), x, H - 8);
+  });
+
+  // Draw line helper
+  function drawLine(key, color) {
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([]);
+    data.forEach((d, i) => {
+      const x = xOf(d.t), y = yOf(d[key]);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    ctx.stroke();
+  }
+
+  drawLine('loss',  '#1f6feb');   // Fraud Loss — blue
+  drawLine('churn', '#f0883e');   // Customer Friction — orange
+  drawLine('total', '#e3b341');   // Total Cost — yellow (thicker)
+
+  // Total cost line thicker
+  ctx.beginPath();
+  ctx.strokeStyle = '#e3b341';
+  ctx.lineWidth = 2.5;
+  data.forEach((d, i) => {
+    const x = xOf(d.t), y = yOf(d.total);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+
+  // Optimal point marker
+  const ox = xOf(optPoint.t), oy = yOf(optPoint.total);
+  ctx.beginPath();
+  ctx.arc(ox, oy, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#e3b341';
+  ctx.fill();
+  ctx.strokeStyle = '#0d1117';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Current threshold vertical line
+  const cx2 = xOf(currentTheta);
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(88,166,255,0.6)';
+  ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]);
+  ctx.moveTo(cx2, PAD.top);
+  ctx.lineTo(cx2, PAD.top + chartH);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Triangle marker at top of current threshold line
+  ctx.beginPath();
+  ctx.fillStyle = '#58a6ff';
+  ctx.moveTo(cx2, PAD.top + 2);
+  ctx.lineTo(cx2 - 5, PAD.top + 10);
+  ctx.lineTo(cx2 + 5, PAD.top + 10);
+  ctx.closePath();
+  ctx.fill();
+}
+
+// ─── INFO ICON TAP (mobile) ───────────────────────────────────────────────────
+function toggleTip(el) {
+  const wasOpen = el.classList.contains('tapped');
+  document.querySelectorAll('.info-icon.tapped').forEach(e => e.classList.remove('tapped'));
+  if (!wasOpen) el.classList.add('tapped');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.info-icon')) {
+    document.querySelectorAll('.info-icon.tapped').forEach(e => e.classList.remove('tapped'));
+  }
+});
+
+// ─── GLOSSARY ─────────────────────────────────────────────────────────────────
+function toggleGlossary() {
+  const body = document.getElementById('glossary-body');
+  const btn  = document.getElementById('glossary-toggle');
+  body.classList.toggle('open');
+  btn.classList.toggle('open');
+}
+
+// ─── GUIDED TOUR ──────────────────────────────────────────────────────────────
+const tourSteps = [
+  {
+    title: '👋 Welcome to FraudLens',
+    body: 'This tool simulates how a bank\'s AI fraud detection model works. There are <strong>25 transactions</strong> — some genuine, some fraudulent. The model gives each a <strong>fraud score</strong> (0 to 1). Your job: set a threshold that decides when to flag a transaction.',
+    threshold: 0.50
+  },
+  {
+    title: '🎯 What happens at a low threshold?',
+    body: 'We\'ve set the threshold to <strong>0.25</strong> — very strict. The model flags almost everything. Look at the matrix: <strong>TP and FP are both high</strong>. You\'re catching all fraud (great!) but also blocking lots of genuine customers (costly and annoying).',
+    threshold: 0.25
+  },
+  {
+    title: '⚖️ The sweet spot — balanced threshold',
+    body: 'At <strong>0.54</strong>, the model catches most fraud cases without over-blocking genuine customers. Watch the <strong>Total Cost</strong> in the cost panel — it\'s at its lowest here. This is why the cost curve has a valley — it\'s showing you the optimal operating point.',
+    threshold: 0.54
+  },
+  {
+    title: '📈 What happens at a high threshold?',
+    body: 'At <strong>0.88</strong>, the model is very lenient — it only flags transactions it\'s almost certain about. <strong>FN shoots up</strong> — lots of fraud slips through. The bank loses money. Notice Recall drops sharply. This is the danger zone for a Risk Officer.',
+    threshold: 0.88
+  }
+];
+
+let tourStep = 0;
+
+function startTour() {
+  tourStep = 0;
+  renderTourStep();
+  document.getElementById('tour-overlay').classList.add('active');
+}
+
+function exitTour() {
+  document.getElementById('tour-overlay').classList.remove('active');
+}
+
+function tourNav(dir) {
+  tourStep = Math.max(0, Math.min(tourSteps.length - 1, tourStep + dir));
+  renderTourStep();
+}
+
+function renderTourStep() {
+  const s = tourSteps[tourStep];
+  document.getElementById('tour-step-label').textContent = `Step ${tourStep+1} of ${tourSteps.length}`;
+  document.getElementById('tour-title').textContent = s.title;
+  document.getElementById('tour-body').innerHTML = s.body;
+  document.getElementById('tour-progress').textContent = `${tourStep+1} / ${tourSteps.length}`;
+  document.getElementById('tour-prev').style.opacity = tourStep === 0 ? '0.3' : '1';
+  document.getElementById('tour-prev').disabled = tourStep === 0;
+  const nextBtn = document.getElementById('tour-next');
+  if (tourStep === tourSteps.length - 1) {
+    nextBtn.textContent = '✓ Finish';
+    nextBtn.onclick = exitTour;
+  } else {
+    nextBtn.textContent = 'Next →';
+    nextBtn.onclick = () => tourNav(1);
+  }
+  setThreshold(s.threshold);
+}
+
+// Init
+update();
+</script>
+</body>
+</html>
