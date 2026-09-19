@@ -14,6 +14,12 @@ A fully interactive confusion matrix playground built for the Financial Services
 
 ---
 
+## 🔗 Live Demo
+
+[FraudLens — Live on GitHub Pages](https://rishendra125.github.io/fraudLens_confusion_matrix_project/)
+
+---
+
 ## 🎯 Purpose
 
 FraudLens simulates how a bank's AI fraud detection model works. It lets you adjust a detection threshold and see in real time how that single decision affects fraud outcomes, customer experience, and business cost — all visualised through a live confusion matrix.
@@ -137,12 +143,6 @@ Built as a portfolio tool to demonstrate understanding of:
 - Desktop: two-column layout (left panel + right panel)
 - Tablet (≤900px): single column, stacked layout
 - Mobile (≤600px): matrix reflows to 2×2, metrics to 2-col, cost panel stacks vertically
-
----
-
-## 🔗 Live Demo
-
-[FraudLens — Live on Claude.ai](https://claude.ai/artifact/4befRUkFtxQg6PY9E3DcaP)
 
 ---
 
