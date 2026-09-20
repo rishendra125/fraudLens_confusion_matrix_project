@@ -261,6 +261,59 @@
     min-width: 0;
   }
 
+  /* MATRIX + INSIGHTS LAYOUT */
+  .matrix-insights-wrap {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 0;
+    align-items: start;
+  }
+
+  /* INSIGHTS PANEL */
+  .insights-panel {
+    border-left: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 100%;
+  }
+  .insights-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 4px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .insight-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text);
+  }
+  .insight-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+  .insight-dot.green { background: var(--tp); }
+  .insight-dot.amber { background: var(--fn); }
+  .insight-dot.red   { background: var(--danger); }
+  .insight-dot.blue  { background: #58a6ff; }
+
+  @media (max-width: 900px) {
+    .matrix-insights-wrap { grid-template-columns: 1fr; }
+    .insights-panel { border-left: none; border-top: 1px solid var(--border); }
+  }
+
   /* CONFUSION MATRIX */
   .matrix-section {
     padding: 28px 28px 20px;
@@ -897,6 +950,8 @@
     </div>
 
     <!-- Confusion Matrix -->
+    <div class="matrix-insights-wrap">
+    <!-- Confusion Matrix -->
     <div class="matrix-section">
       <div class="matrix-title">Confusion Matrix — Live View</div>
       <div class="matrix-subtitle">Rows = Model Decision &nbsp;·&nbsp; Columns = Ground Truth &nbsp;·&nbsp; Adjust threshold to watch cells shift</div>
@@ -934,6 +989,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Insights Panel -->
+    <div class="insights-panel">
+      <div class="insights-title">📊 Model Insights</div>
+      <div id="insights-list"></div>
+    </div>
+
+    </div><!-- end matrix-insights-wrap -->
 
     <!-- Cost Display -->
     <div class="cost-panel">
@@ -1377,6 +1440,51 @@ function update() {
   }).join('');
 
   document.getElementById('txn-count').textContent = `${transactions.length} transactions`;
+
+  // ── Model Insights ─────────────────────────────────────────────────────────
+  const insights = [];
+
+  // Recall insight
+  if (FN === 0) {
+    insights.push({ dot: 'green', text: '<strong>Recall: 100%</strong> — catching all fraud, nothing slipping through.' });
+  } else if (recall >= 0.8) {
+    insights.push({ dot: 'amber', text: `<strong>Recall: ${pct(recall)}</strong> — most fraud caught but ${FN} case${FN>1?'s':''} slipped through.` });
+  } else {
+    insights.push({ dot: 'red', text: `<strong>Recall: ${pct(recall)}</strong> — ${FN} fraud case${FN>1?'s':''} missed. Consider lowering the threshold.` });
+  }
+
+  // Precision insight
+  if (FP === 0) {
+    insights.push({ dot: 'green', text: '<strong>Precision: 100%</strong> — no genuine customers blocked by mistake.' });
+  } else if (isFinite(precision) && precision >= 0.85) {
+    insights.push({ dot: 'amber', text: `<strong>Precision: ${pct(precision)}</strong> — ${FP} genuine customer${FP>1?'s':''} wrongly blocked.` });
+  } else {
+    insights.push({ dot: 'red', text: `<strong>Precision: ${pct(precision)}</strong> — too many genuine customers being blocked. Try raising the threshold.` });
+  }
+
+  // Threshold suggestion
+  if (FN === 0 && FP === 0) {
+    insights.push({ dot: 'green', text: '<strong>Perfect balance</strong> — all fraud caught, no genuine customers blocked at this threshold.' });
+  } else if (FN === 0 && FP > 0) {
+    insights.push({ dot: 'blue', text: `<strong>Suggestion:</strong> All fraud is caught. Try raising the threshold slightly to reduce the ${FP} false block${FP>1?'s':''}.` });
+  } else if (FP === 0 && FN > 0) {
+    insights.push({ dot: 'blue', text: `<strong>Suggestion:</strong> No genuine customers blocked. Try lowering the threshold to catch the ${FN} missed fraud case${FN>1?'s':''}.` });
+  } else {
+    insights.push({ dot: 'blue', text: `<strong>Suggestion:</strong> ${FN} fraud missed and ${FP} genuine customer${FP>1?'s':''} blocked. Adjust threshold to find a better balance.` });
+  }
+
+  // Cost insight
+  if (total === 0) {
+    insights.push({ dot: 'green', text: '<strong>Zero operational cost</strong> — this is the optimal threshold for your cost configuration.' });
+  } else if (FN * costFN > FP * costFP) {
+    insights.push({ dot: 'amber', text: `<strong>Fraud loss dominates</strong> — missed fraud costs <strong>${fmt(FN*costFN)}</strong> vs <strong>${fmt(FP*costFP)}</strong> in friction. Lower the threshold to catch more fraud.` });
+  } else {
+    insights.push({ dot: 'amber', text: `<strong>Friction cost dominates</strong> — blocking customers costs <strong>${fmt(FP*costFP)}</strong> vs <strong>${fmt(FN*costFN)}</strong> in fraud loss. Raise the threshold to reduce false blocks.` });
+  }
+
+  document.getElementById('insights-list').innerHTML = insights.map(i =>
+    `<div class="insight-item"><span class="insight-dot ${i.dot}"></span><span>${i.text}</span></div>`
+  ).join('');
 
   // ── Traffic Lights ─────────────────────────────────────────────────────────
   const totalFraud = transactions.filter(t => t.fraud).length;   // 10

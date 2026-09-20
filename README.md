@@ -117,9 +117,15 @@ Built as a portfolio tool to demonstrate understanding of:
 | Model Decision | FRAUD (blocked) or PASS (approved) based on fraud score vs threshold. |
 | Outcome | Result after comparing model decision against ground truth: TP, FP, FN, or TN. |
 
----
+### 13. Dynamic Model Insights Panel
+- Sits alongside the confusion matrix using the previously empty right-side space
+- 4 auto-generated insights update live with every threshold change
+- Recall insight — green/amber/red based on how many frauds are caught
+- Precision insight — green/amber/red based on false blocks
+- Threshold suggestion — plain-English recommendation on which way to move the threshold
+- Cost insight — tells you whether fraud loss or customer friction is dominating
 
-## 📊 Dataset
+---
 
 25 synthetic transactions across categories: Electronics, Grocery, Fuel, Jewellery, Food & Dining, Travel, Apparel, Pharmacy, Transfer.
 
